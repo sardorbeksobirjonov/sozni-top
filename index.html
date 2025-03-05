@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Sobirjonov Sardorbek">
+    <meta name="description" content="Matn Taxmin Qilish - 3D O'yini. So‘zni to‘g‘ri taxmin qiling va yutib chiqing!">
+    <meta name="keywords" content="o'yin, matn taxmin qilish, 3D, three.js, interaktiv">
+    <meta name="robots" content="index, follow">
+    <title>Matn Taxmin Qilish 3D O'yini</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #1e1e2e;
+            color: white;
+            overflow: hidden;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="relative z-10 text-center">
+        <h1 class="text-4xl font-bold mb-4">Matn Taxmin Qilish</h1>
+        <p id="word" class="text-2xl font-semibold">So'z</p>
+        <div id="options" class="mt-4 flex flex-wrap justify-center gap-2"></div>
+        <p id="result" class="mt-4 text-xl font-bold"></p>
+        <button id="restart" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hidden">Qayta O'ynash</button>
+        
+        <!-- Telegram kanal va admin bilan bog'lanish -->
+        <div class="mt-6">
+            <a href="https://t.me/webstormers" target="_blank" class="px-4 py-2 bg-green-500 text-white rounded-lg">📢 Telegram Kanal</a>
+            <a href="https://t.me/webstor_admin" target="_blank" class="px-4 py-2 bg-red-500 text-white rounded-lg">✉️ Admin bilan bog'lanish</a>
+
+        </div>
+    </div>
+    
+    <script>
+        const words = [
+            "salom", "kitob", "qalam", "telefon", "kompyuter", "dastur", "stol", "oyna", "do'st", "o'qituvchi",
+            "maktab", "daryo", "tog'", "qush", "oy", "quyosh", "bahor", "yoz", "kuz", "qish",
+            "shahar", "qishloq", "dehqon", "talaba", "muallim", "mushtariy", "asar", "tarix", "madaniyat", "ilm",
+            "shifo", "gullar", "bog'", "daraxt", "mevalar", "havo", "tuproq", "ona", "ota", "bola", "aka",
+            "uka", "opa", "singil", "do'kon", "bozor", "mashina", "avtobus", "poezd", "samolyot", "kema",
+            "kitobxon", "shoir", "yozuvchi", "san'at", "musika", "rassom", "haykaltarosh", "kinoteatr", "stadion", "sport",
+            "futbol", "basketbol", "tennis", "shaxmat", "billiard", "gimnastika", "boks", "kurash", "karate", "yoga",
+            "kasb", "hunar", "hunarmand", "san'atkor", "mexanik", "dasturchi", "arxitektor", "muallif", "tadbirkor", "ishbilarmon",
+            "dunyo", "sayohat", "samolyot", "avtomobil", "velosiped", "yo'l", "yo'lovchi", "chorraha", "yo'l harakati", "svetofor",
+            "bog'", "o'rmon", "daryo", "ko'l", "okean", "qum", "tog'", "cho'l", "dasht", "g'or", "vodiy",
+            "quyosh", "oy", "yulduz", "bulut", "shamol", "yomg'ir", "qor", "muz", "havo", "iqlim",
+            "uy", "hovli", "deraza", "eshik", "shift", "pol", "devor", "mehmonxona", "oshxona", "vanna",
+            "stol", "stul", "divan", "gilam", "pardalar", "chiroq", "idish", "kosmik", "bo'yoq", "kitob",
+            "tarix", "adabiyot", "fan", "kimyo", "biologiya", "matematika", "fizika", "geometriya", "astronomiya", "informatika",
+            "hayvon", "mushuk", "it", "sigir", "ot", "quyon", "tovuq", "to'ng'iz", "tovushqon", "qoy",
+            "qush", "burgut", "qaldirg'och", "bulbul", "qarga", "to'tiqush", "tovus", "g'oz", "o'rdak", "qarg'a",
+            "oziq-ovqat", "non", "shakar", "tuz", "go'sht", "sabzavot", "meva", "kartoshka", "sabzi", "piyoz",
+            "shirinlik", "shokolad", "pechenye", "konfet", "muzqaymoq", "qand", "choy", "qahva", "sut", "limon",
+            "shifokor", "hamshira", "o'qituvchi", "muallim", "muhandis", "dasturchi", "sotuvchi", "dehqon", "haydovchi", "askariy",
+            "politsiya", "hakam", "advokat", "sudya", "notarius", "bankir", "iqtisodchi", "buxgalter", "ishchi", "ustoz",
+            "san'at", "rassom", "haykaltarosh", "musiqachi", "aktyor", "rejissyor", "yog'och ustasi", "me'mor", "modelyer", "stilist",
+            "sport", "futbol", "basketbol", "voleybol", "tennis", "boks", "kurash", "karate", "yoga", "gimnastika"
+        ];
+        let currentWord = "";
+        let correctAnswer = "";
+        let score = 0;
+        
+        const wordEl = document.getElementById("word");
+        const optionsEl = document.getElementById("options");
+        const resultEl = document.getElementById("result");
+        const restartBtn = document.getElementById("restart");
+        
+        function newWord() {
+            optionsEl.innerHTML = "";
+            resultEl.textContent = "";
+            restartBtn.classList.add("hidden");
+            
+            if (score === words.length) {
+                resultEl.textContent = "Siz yutdingiz! Tabriklaymiz 🎉";
+                restartBtn.classList.remove("hidden");
+                return;
+            }
+            
+            currentWord = words[score];
+            let randomIndex = Math.floor(Math.random() * currentWord.length);
+            correctAnswer = currentWord[randomIndex];
+            let displayWord = currentWord.substring(0, randomIndex) + "_" + currentWord.substring(randomIndex + 1);
+            wordEl.textContent = displayWord;
+            
+            let options = [correctAnswer];
+            const alphabet = "abcdefghijklmnopqrstuvwxyz'";
+            while (options.length < 4) {
+                let randomLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+                if (!options.includes(randomLetter)) options.push(randomLetter);
+            }
+            
+            options = options.sort(() => Math.random() - 0.5);
+            
+            options.forEach(option => {
+                const btn = document.createElement("button");
+                btn.textContent = option;
+                btn.className = "px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-green-500 text-xl font-bold transition-transform transform hover:scale-110";
+                btn.onclick = () => checkAnswer(option);
+                optionsEl.appendChild(btn);
+            });
+        }
+        
+        function checkAnswer(selected) {
+            if (selected === correctAnswer) {
+                score++;
+                newWord();
+            } else {
+                resultEl.textContent = `Siz ${score} ta savolga to'g'ri javob berdingiz!`;
+                restartBtn.classList.remove("hidden");
+            }
+        }
+        
+        restartBtn.onclick = () => {
+            score = 0;
+            newWord();
+        };
+        
+        newWord();
+        
+        // THREE.js orqali 3D fon yaratamiz
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        
+        const geometry = new THREE.SphereGeometry(5, 32, 32);
+        const material = new THREE.MeshStandardMaterial({ color: 0x00ff00, wireframe: true });
+        const sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+        
+        const light = new THREE.PointLight(0xffffff, 1, 100);
+        light.position.set(10, 10, 10);
+        scene.add(light);
+        
+        camera.position.z = 10;
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            sphere.rotation.x += 0.01;
+            sphere.rotation.y += 0.01;
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
